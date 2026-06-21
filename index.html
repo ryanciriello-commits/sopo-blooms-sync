@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoPo Blooms — Data Sync</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-deep:    #1a3d2b;
+    --green-forest:  #2d6a4f;
+    --green-sage:    #74b49b;
+    --green-mist:    #d8ede5;
+    --green-frost:   #f0f8f4;
+    --gold:          #c8973a;
+    --gold-light:    #fdf4e3;
+    --cream:         #faf8f3;
+    --ink:           #1c1c1c;
+    --ink-mid:       #4a4a4a;
+    --ink-light:     #8a8a8a;
+    --border:        #e0ece6;
+    --white:         #ffffff;
+    --red:           #c0392b;
+    --red-light:     #fdf0ee;
+    --purple:        #6a1b9a;
+    --purple-light:  #f3e5f5;
+    --radius:        12px;
+    --radius-lg:     20px;
+    --shadow-sm:     0 2px 8px rgba(26,61,43,0.08);
+    --shadow-md:     0 8px 32px rgba(26,61,43,0.12);
+    --shadow-lg:     0 20px 60px rgba(26,61,43,0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 10% 20%, rgba(116,180,155,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 90% 80%, rgba(200,151,58,0.08) 0%, transparent 60%);
+  }
+
+  /* HEADER */
+  header {
+    background: var(--green-deep);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow-md);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-bloom { width:36px;height:36px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px; }
+  .logo-text { font-family:'Playfair Display',serif;color:var(--white);font-size:1.25rem;font-weight:600; }
+  .logo-sub { color:var(--green-sage);font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase; }
+  .header-actions { display:flex;gap:10px;align-items:center; }
+  .btn-hdr { background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;cursor:pointer;transition:all 0.2s; }
+  .btn-hdr:hover { background:rgba(255,255,255,0.1);color:white; }
+
+  /* SECURITY BANNER */
+  .sec-banner {
+    background: linear-gradient(135deg, #1a3d2b 0%, #2d6a4f 100%);
+    border-left: 4px solid var(--gold);
+    margin: 1.5rem 0 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.9rem 1.25rem;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .sec-banner-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+  .sec-banner-text { font-size: 0.78rem; color: rgba(255,255,255,0.85); line-height: 1.6; }
+  .sec-banner-text strong { color: var(--gold); }
+
+  main { max-width: 960px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+
+  /* SESSION WARNING */
+  .session-warn {
+    background: var(--gold-light);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 0.85rem 1.25rem;
+    margin: 1.25rem 0;
+    font-size: 0.8rem;
+    color: #7a5c00;
+    display: flex; align-items: center; gap: 10px;
+    display: none;
+  }
+  .session-warn.visible { display: flex; }
+
+  /* STATUS BAR */
+  .status-bar {
+    background: var(--white); border:1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem 1.5rem;
+    margin: 1.25rem 0;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: var(--shadow-sm); flex-wrap: wrap; gap: 0.75rem;
+  }
+  .status-label { font-size:0.75rem;color:var(--ink-light);text-transform:uppercase;letter-spacing:0.06em;font-weight:500; }
+  .status-value { font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--green-forest);font-weight:500;margin-top:2px; }
+  .status-dot { width:8px;height:8px;border-radius:50%;background:var(--ink-light);display:inline-block;margin-right:6px; }
+  .status-dot.connected { background:#27ae60;box-shadow:0 0 0 3px rgba(39,174,96,0.2); }
+  .status-dot.warning   { background:var(--gold); }
+
+  /* SECTION */
+  .section-title { font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--green-deep);margin-bottom:0.5rem;font-weight:600; }
+  .section-hint  { font-size:0.82rem;color:var(--ink-light);margin-bottom:1.5rem;line-height:1.6; }
+
+  /* SYNC GRID */
+  .sync-grid { display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:2rem; }
+  @media(max-width:640px){.sync-grid{grid-template-columns:1fr;}}
+
+  .sync-card {
+    background:var(--white);border:1px solid var(--border);
+    border-radius:var(--radius-lg);padding:1.5rem;
+    box-shadow:var(--shadow-sm);transition:box-shadow 0.2s,transform 0.2s;
+    position:relative;overflow:hidden;
+  }
+  .sync-card::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green-forest),var(--green-sage)); }
+  .sync-card:hover { box-shadow:var(--shadow-md);transform:translateY(-2px); }
+  .sync-card.bank::before   { background:linear-gradient(90deg,var(--gold),#e8b86d); }
+  .sync-card.manual::before { background:linear-gradient(90deg,#6c8ebf,#a8c4e0); }
+  .sync-card.charity::before{ background:linear-gradient(90deg,var(--purple),#ab47bc); }
+
+  .card-icon { width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1rem; }
+  .card-icon.green  { background:#e8f5e9; }
+  .card-icon.gold   { background:var(--gold-light); }
+  .card-icon.blue   { background:#e8f0fb; }
+  .card-icon.purple { background:var(--purple-light); }
+
+  .card-title { font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--green-deep);margin-bottom:0.25rem; }
+  .card-desc  { font-size:0.78rem;color:var(--ink-light);line-height:1.5;margin-bottom:1.25rem; }
+  .card-last-sync { font-size:0.72rem;color:var(--ink-light);font-family:'DM Mono',monospace;margin-bottom:1rem; }
+
+  .btn-sync { width:100%;padding:10px 0;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.02em; }
+  .btn-sync.green  { background:var(--green-forest);color:white; }
+  .btn-sync.green:hover  { background:var(--green-deep); }
+  .btn-sync.gold   { background:var(--gold);color:white; }
+  .btn-sync.gold:hover   { background:#b8862a; }
+  .btn-sync.blue   { background:#5b7ec7;color:white; }
+  .btn-sync.blue:hover   { background:#4a6ab0; }
+  .btn-sync.purple { background:var(--purple);color:white; }
+  .btn-sync.purple:hover { background:#4a1070; }
+  .btn-sync:disabled { opacity:0.5;cursor:not-allowed;transform:none; }
+
+  .date-range { display:flex;gap:8px;margin-bottom:1rem;align-items:center; }
+  .date-range label { font-size:0.75rem;color:var(--ink-light);white-space:nowrap; }
+  .date-range input[type=date] { flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--ink);background:var(--green-frost);outline:none; }
+  .date-range input[type=date]:focus { border-color:var(--green-forest); }
+
+  .upload-zone { border:2px dashed var(--border);border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--green-frost);margin-bottom:1rem;position:relative; }
+  .upload-zone:hover,.upload-zone.dragover { border-color:var(--gold);background:var(--gold-light); }
+  .upload-zone input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+  .upload-zone-text { font-size:0.8rem;color:var(--ink-light); }
+  .upload-zone-icon { font-size:1.5rem;margin-bottom:4px; }
+  .upload-filename  { font-size:0.75rem;color:var(--green-forest);font-family:'DM Mono',monospace;margin-top:4px;font-weight:500; }
+
+  /* CHARITY FORM */
+  .charity-form input, .charity-form select, .charity-form textarea {
+    width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 10px;
+    font-family:'DM Sans',sans-serif;font-size:0.82rem;margin-bottom:8px;
+    outline:none;background:var(--green-frost);color:var(--ink);
+    transition:border-color 0.2s;
+  }
+  .charity-form input:focus, .charity-form select:focus { border-color:var(--purple); }
+  .charity-tag { display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;margin-left:6px; }
+  .charity-tag.schedA  { background:var(--purple-light);color:var(--purple); }
+  .charity-tag.schedC  { background:#e8f5e9;color:var(--green-forest); }
+  .charity-tag.inkind  { background:var(--gold-light);color:#7a5c00; }
+
+  /* PREVIEW */
+  .preview-section { background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:2rem;box-shadow:var(--shadow-sm);display:none; }
+  .preview-section.visible { display:block; }
+  .preview-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem; }
+  .preview-title  { font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--green-deep); }
+  .preview-badge  { background:var(--green-mist);color:var(--green-forest);font-size:0.72rem;font-weight:600;padding:3px 10px;border-radius:20px; }
+
+  .preview-table-wrap { overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin-bottom:1rem;max-height:280px;overflow-y:auto; }
+  .preview-table { width:100%;border-collapse:collapse;font-size:0.78rem; }
+  .preview-table th { background:var(--green-deep);color:white;padding:8px 12px;text-align:left;font-weight:500;font-size:0.72rem;white-space:nowrap;position:sticky;top:0; }
+  .preview-table td { padding:7px 12px;border-bottom:1px solid var(--border);color:var(--ink-mid);white-space:nowrap; }
+  .preview-table tr:last-child td { border-bottom:none; }
+  .preview-table tr:nth-child(even) td { background:var(--green-frost); }
+  .preview-table td.amount-pos { color:var(--green-forest);font-weight:600;font-family:'DM Mono',monospace; }
+  .preview-table td.amount-neg { color:var(--red);font-weight:600;font-family:'DM Mono',monospace; }
+  .preview-table td.cat-cell   { font-size:0.7rem;background:var(--green-mist);color:var(--green-forest);border-radius:4px;padding:2px 8px;font-weight:500; }
+
+  .col-map-box { background:var(--gold-light);border:1px solid #e8c97a;border-radius:8px;padding:1rem;margin-bottom:1rem; }
+  .col-map-title { font-weight:600;color:#7a5c00;margin-bottom:0.5rem;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em; }
+  .col-map-grid  { display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px; }
+  .col-map-item  { display:flex;flex-direction:column;gap:2px; }
+  .col-map-label { font-size:0.7rem;color:#a07820;font-weight:500; }
+  .col-map-select { border:1px solid #e0c070;border-radius:5px;padding:4px 6px;font-size:0.75rem;background:white;color:var(--ink);font-family:'DM Sans',sans-serif;outline:none;width:100%; }
+
+  .btn-confirm { background:var(--green-deep);color:white;border:none;border-radius:8px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;margin-right:8px; }
+  .btn-confirm:hover { background:var(--green-forest); }
+  .btn-cancel-preview { background:transparent;color:var(--ink-light);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.2s; }
+  .btn-cancel-preview:hover { color:var(--red);border-color:var(--red); }
+
+  /* LOG */
+  .log-section { background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;box-shadow:var(--shadow-sm);margin-bottom:2rem; }
+  .log-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem; }
+  .log-title  { font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--green-deep); }
+  .log-clear  { font-size:0.75rem;color:var(--ink-light);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:4px 8px;border-radius:4px; }
+  .log-clear:hover { color:var(--red);background:var(--red-light); }
+  .log-entries { max-height:200px;overflow-y:auto;font-family:'DM Mono',monospace;font-size:0.75rem;line-height:1.8; }
+  .log-entry   { display:flex;gap:12px;padding:2px 0; }
+  .log-time    { color:var(--ink-light);flex-shrink:0; }
+  .log-msg.success { color:var(--green-forest); }
+  .log-msg.error   { color:var(--red); }
+  .log-msg.info    { color:var(--ink-mid); }
+  .log-msg.warning { color:#c07020; }
+  .log-empty   { color:var(--ink-light);font-size:0.8rem;font-style:italic;text-align:center;padding:1rem 0; }
+
+  /* SUMMARY STRIP */
+  .summary-strip { display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem; }
+  @media(max-width:640px){.summary-strip{grid-template-columns:1fr 1fr;}}
+  .summary-card { background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow-sm);text-align:center; }
+  .summary-card-value { font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:500;color:var(--green-deep);margin-bottom:3px; }
+  .summary-card-label { font-size:0.7rem;color:var(--ink-light);text-transform:uppercase;letter-spacing:0.06em; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed;inset:0;background:rgba(26,61,43,0.6);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--white);border-radius:var(--radius-lg);width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg); }
+  .modal-header { background:var(--green-deep);padding:1.5rem 2rem;border-radius:var(--radius-lg) var(--radius-lg) 0 0;display:flex;justify-content:space-between;align-items:flex-start; }
+  .modal-title    { font-family:'Playfair Display',serif;color:white;font-size:1.25rem; }
+  .modal-subtitle { color:var(--green-sage);font-size:0.8rem;margin-top:3px; }
+  .modal-close { background:rgba(255,255,255,0.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+  .modal-close:hover { background:rgba(255,255,255,0.25); }
+  .modal-body { padding:2rem; }
+
+  /* SECURITY SECTION IN MODAL */
+  .sec-info { background:var(--green-frost);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:2rem; }
+  .sec-info-title { font-weight:600;color:var(--green-deep);font-size:0.9rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:8px; }
+  .sec-item { display:flex;gap:10px;align-items:flex-start;margin-bottom:0.6rem; }
+  .sec-item-icon { font-size:0.9rem;flex-shrink:0;margin-top:1px; }
+  .sec-item-text { font-size:0.8rem;color:var(--ink-mid);line-height:1.5; }
+  .sec-item-text strong { color:var(--green-deep); }
+
+  .setup-step { margin-bottom:2rem;padding-bottom:2rem;border-bottom:1px solid var(--border); }
+  .setup-step:last-child { border-bottom:none;margin-bottom:0; }
+  .step-number { display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--green-forest);color:white;border-radius:50%;font-size:0.75rem;font-weight:700;margin-bottom:0.75rem; }
+  .step-title  { font-family:'Playfair Display',serif;font-size:1rem;color:var(--green-deep);margin-bottom:0.5rem; }
+  .step-desc   { font-size:0.82rem;color:var(--ink-mid);line-height:1.7;margin-bottom:1rem; }
+  .step-instruction { background:var(--green-frost);border-left:3px solid var(--green-forest);border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.78rem;color:var(--ink-mid);line-height:1.7;margin-bottom:1rem; }
+  .step-instruction ol { padding-left:1.2rem;margin-top:4px; }
+  .step-instruction li { margin-bottom:3px; }
+
+  .api-input-group { margin-bottom:1rem; }
+  .api-input-label { font-size:0.75rem;font-weight:600;color:var(--ink-mid);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;display:block; }
+  .api-input { width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--ink);background:var(--green-frost);outline:none;transition:border-color 0.2s; }
+  .api-input:focus { border-color:var(--green-forest);background:white; }
+  .sheets-input { width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--ink);background:var(--gold-light);outline:none; }
+
+  .session-note { background:var(--gold-light);border:1px solid #e8c97a;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#7a5c00;margin-bottom:1rem;line-height:1.6; }
+
+  .btn-save-settings { background:var(--green-forest);color:white;border:none;border-radius:8px;padding:11px 28px;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;width:100%;transition:all 0.2s;margin-top:0.5rem; }
+  .btn-save-settings:hover { background:var(--green-deep); }
+
+  /* TOAST */
+  .toast { position:fixed;bottom:2rem;right:2rem;background:var(--green-deep);color:white;padding:12px 20px;border-radius:10px;font-size:0.85rem;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;transform:translateY(80px);opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);max-width:320px;display:flex;align-items:center;gap:10px; }
+  .toast.show  { transform:translateY(0);opacity:1; }
+  .toast.error { background:var(--red); }
+  .toast.warn  { background:#c07020; }
+
+  .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;flex-shrink:0; }
+  @keyframes spin { to{transform:rotate(360deg);} }
+
+  ::-webkit-scrollbar { width:6px;height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--green-mist);border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--green-sage); }
+
+  input[type=number], input[type=text] { font-family:'DM Sans',sans-serif; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-bloom">🌸</div>
+    <div>
+      <div class="logo-text">SoPo Blooms</div>
+      <div class="logo-sub">Financial Sync</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-hdr" onclick="openSetup()">⚙ Setup & API Keys</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- SECURITY BANNER -->
+  <div class="sec-banner">
+    <div class="sec-banner-icon">🔒</div>
+    <div class="sec-banner-text">
+      <strong>Your data never leaves your device.</strong> API keys are held in memory for this session only — they clear automatically when you close this tab. No server, no cloud, no third party. Your browser talks directly to Square and Squarespace. <a href="#" onclick="openSetup();return false;" style="color:var(--gold);">Learn more in Setup →</a>
+    </div>
+  </div>
+
+  <!-- SESSION WARNING -->
+  <div class="session-warn" id="session-warn">
+    ⚠ API keys cleared — this is a new session. <a href="#" onclick="openSetup();return false;" style="color:#7a5c00;font-weight:600;margin-left:4px;">Re-enter in Setup →</a>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div>
+      <div class="status-label">Square</div>
+      <div class="status-value" id="sq-status"><span class="status-dot" id="sq-dot"></span>Not configured</div>
+    </div>
+    <div>
+      <div class="status-label">Squarespace</div>
+      <div class="status-value" id="ss-status"><span class="status-dot" id="ss-dot"></span>Not configured</div>
+    </div>
+    <div>
+      <div class="status-label">Google Sheet</div>
+      <div class="status-value" id="gs-status"><span class="status-dot" id="gs-dot"></span>Not configured</div>
+    </div>
+    <div>
+      <div class="status-label">Last Sync</div>
+      <div class="status-value" id="last-sync-time">Never</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY STRIP -->
+  <div class="summary-strip">
+    <div class="summary-card">
+      <div class="summary-card-value" id="sum-square">—</div>
+      <div class="summary-card-label">Square (this month)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-value" id="sum-ss">—</div>
+      <div class="summary-card-label">Online Orders</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-value" id="sum-expenses">—</div>
+      <div class="summary-card-label">Expenses imported</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-value" id="sum-rows">0</div>
+      <div class="summary-card-label">Rows synced today</div>
+    </div>
+  </div>
+
+  <!-- SYNC CARDS -->
+  <div class="section-title">Sync Your Data</div>
+  <p class="section-hint">Pull transactions from each source directly into your Google Sheet. Square and Squarespace connect via API — no CSV needed. Bank CSV uses smart column detection. Charitable giving logs separately with tax treatment flagged.</p>
+
+  <div class="sync-grid">
+
+    <!-- Square CSV -->
+    <div class="sync-card">
+      <div class="card-icon green">🟦</div>
+      <div class="card-title">Square POS</div>
+      <div class="card-desc">Export from Square Dashboard → Reports → Transactions → Export. Then drop the CSV here — columns are detected automatically.</div>
+      <div style="background:var(--green-frost);border-radius:8px;padding:8px 12px;font-size:0.75rem;color:var(--ink-light);margin-bottom:10px;line-height:1.5;">
+        📋 In Square: <strong>Reports → Sales Summary → Export</strong>
+      </div>
+      <div class="upload-zone" id="sq-drop" ondragover="handleDragOverGeneric(event,'sq-drop')" ondragleave="handleDragLeaveGeneric('sq-drop')" ondrop="handleDropGeneric(event,'sq','sq-drop')">
+        <input type="file" id="sq-file" accept=".csv" onchange="handleCSVFile(event,'sq')">
+        <div class="upload-zone-icon">📂</div>
+        <div class="upload-zone-text">Drag & drop Square CSV or click to browse</div>
+        <div class="upload-filename" id="sq-filename"></div>
+      </div>
+      <div class="card-last-sync">Last import: <span id="sq-last">never</span></div>
+      <button class="btn-sync green" onclick="processSquareCSV()" id="sq-btn" disabled>
+        <div class="spinner" id="sq-spin"></div>
+        <span id="sq-btn-text">Preview & Import</span>
+      </button>
+    </div>
+
+    <!-- Squarespace CSV -->
+    <div class="sync-card">
+      <div class="card-icon green">⬛</div>
+      <div class="card-title">Squarespace Commerce</div>
+      <div class="card-desc">Export from Squarespace → Commerce → Orders → Export Orders. Drop the CSV here — columns are detected automatically.</div>
+      <div style="background:var(--green-frost);border-radius:8px;padding:8px 12px;font-size:0.75rem;color:var(--ink-light);margin-bottom:10px;line-height:1.5;">
+        📋 In Squarespace: <strong>Commerce → Orders → Export</strong>
+      </div>
+      <div class="upload-zone" id="ssp-drop" ondragover="handleDragOverGeneric(event,'ssp-drop')" ondragleave="handleDragLeaveGeneric('ssp-drop')" ondrop="handleDropGeneric(event,'ssp','ssp-drop')">
+        <input type="file" id="ssp-file" accept=".csv" onchange="handleCSVFile(event,'ssp')">
+        <div class="upload-zone-icon">📂</div>
+        <div class="upload-zone-text">Drag & drop Squarespace CSV or click to browse</div>
+        <div class="upload-filename" id="ssp-filename"></div>
+      </div>
+      <div class="card-last-sync">Last import: <span id="ssp-last">never</span></div>
+      <button class="btn-sync green" onclick="processSquarespaceCSV()" id="ssp-btn" disabled>
+        <div class="spinner" id="ssp-spin"></div>
+        <span id="ssp-btn-text">Preview & Import</span>
+      </button>
+    </div>
+
+    <!-- Bank CSV -->
+    <div class="sync-card bank">
+      <div class="card-icon gold">🏦</div>
+      <div class="card-title">Bank / Card CSV</div>
+      <div class="card-desc">Drop your credit union export here. Smart column detection handles any CSV format — columns are auto-mapped, categories auto-suggested.</div>
+      <div class="upload-zone" id="bank-drop" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <input type="file" id="bank-file" accept=".csv" onchange="handleBankFile(event)">
+        <div class="upload-zone-icon">📂</div>
+        <div class="upload-zone-text">Drag & drop CSV or click to browse</div>
+        <div class="upload-filename" id="bank-filename"></div>
+      </div>
+      <div class="card-last-sync">Last import: <span id="bank-last">never</span></div>
+      <button class="btn-sync gold" onclick="processBankCSV()" id="bank-btn" disabled>
+        <div class="spinner" id="bank-spin"></div>
+        <span id="bank-btn-text">Preview & Import</span>
+      </button>
+    </div>
+
+    <!-- Manual Entry -->
+    <div class="sync-card manual">
+      <div class="card-icon blue">✏️</div>
+      <div class="card-title">Quick Manual Entry</div>
+      <div class="card-desc">Log a cash sale, check, or one-off expense without opening the spreadsheet.</div>
+      <select id="manual-type" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:0.82rem;margin-bottom:8px;background:var(--green-frost);color:var(--ink);outline:none;">
+        <option value="cash-sale">💵 Cash Sale</option>
+        <option value="check">📬 Check Received</option>
+        <option value="expense">💸 Expense</option>
+      </select>
+      <input type="number" id="manual-amount" placeholder="Amount ($)" step="0.01" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:0.85rem;margin-bottom:8px;outline:none;background:var(--green-frost);">
+      <input type="text" id="manual-desc" placeholder="Description / notes" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:0.82rem;margin-bottom:10px;outline:none;background:var(--green-frost);">
+      <button class="btn-sync blue" onclick="addManualEntry()"><span>Add Entry</span></button>
+    </div>
+
+    <!-- Charitable Giving — full width -->
+    <div class="sync-card charity" style="grid-column:1/-1;">
+      <div class="card-icon purple">🎁</div>
+      <div class="card-title">Charitable Giving
+        <span class="charity-tag schedA">Schedule A</span>
+        <span class="charity-tag schedC">Schedule C</span>
+        <span class="charity-tag inkind">In-Kind</span>
+      </div>
+      <div class="card-desc">Log donations, in-kind gifts, and event sponsorships. Tax treatment is flagged automatically so your accountant knows exactly where each entry goes.</div>
+      <div class="charity-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:0;">
+          <div>
+            <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;">Date</div>
+            <input type="date" id="ch-date">
+          </div>
+          <div style="grid-column:2/4;">
+            <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;">Organization / Recipient</div>
+            <input type="text" id="ch-org" placeholder="e.g. South Portland Food Pantry">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;">Donation Type</div>
+            <select id="ch-type" onchange="updateCharityUI()">
+              <option value="cash">💵 Cash / Check → Schedule A</option>
+              <option value="inkind">🌸 In-Kind (flowers/product)</option>
+              <option value="sponsorship">📣 Event Sponsorship → Schedule C</option>
+            </select>
+          </div>
+          <div id="ch-amount-group">
+            <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;" id="ch-amount-label">Cash Amount ($)</div>
+            <input type="number" id="ch-amount" placeholder="0.00" step="0.01">
+          </div>
+        </div>
+        <div id="ch-inkind-group" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;">Your Cost Basis ($) <span style="color:var(--red)">← deduct this</span></div>
+            <input type="number" id="ch-cost" placeholder="0.00" step="0.01">
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;">Retail Value ($) <span style="color:var(--ink-light)">for records only</span></div>
+            <input type="number" id="ch-retail" placeholder="0.00" step="0.01">
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.72rem;color:var(--ink-light);margin-bottom:4px;font-weight:500;">Description & Notes</div>
+          <input type="text" id="ch-desc" placeholder="e.g. Spring gala florals, 10 bouquets">
+        </div>
+        <div id="ch-tax-note" style="font-size:0.75rem;padding:6px 10px;border-radius:6px;background:var(--purple-light);color:var(--purple);margin-bottom:8px;line-height:1.5;">
+          📋 <strong>Schedule A:</strong> Personal itemized deduction. Keep acknowledgment letter. Not deductible on your business Schedule C.
+        </div>
+      </div>
+      <button class="btn-sync purple" onclick="addCharityEntry()"><span>Log Donation</span></button>
+    </div>
+
+  </div>
+
+  <!-- PREVIEW SECTION -->
+  <div class="preview-section" id="preview-section">
+    <div class="preview-header">
+      <div class="preview-title" id="preview-title">Preview</div>
+      <div class="preview-badge" id="preview-badge">0 rows</div>
+    </div>
+    <div class="col-map-box" id="col-map-box" style="display:none;">
+      <div class="col-map-title">🔍 Auto-detected columns — confirm mapping</div>
+      <div class="col-map-grid" id="col-map-grid"></div>
+    </div>
+    <div class="preview-table-wrap">
+      <table class="preview-table" id="preview-table">
+        <thead id="preview-thead"></thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+    </div>
+    <div>
+      <button class="btn-confirm" id="preview-confirm-btn" onclick="confirmImport()">✓ Confirm & Send to Sheet</button>
+      <button class="btn-cancel-preview" onclick="cancelPreview()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ACTIVITY LOG -->
+  <div class="log-section">
+    <div class="log-header">
+      <div class="log-title">Activity Log</div>
+      <button class="log-clear" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-entries" id="log-entries">
+      <div class="log-empty">No activity yet. Run a sync to get started.</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setup-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Setup & API Keys</div>
+        <div class="modal-subtitle">One-time configuration — about 10 minutes</div>
+      </div>
+      <button class="modal-close" onclick="closeSetup()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- SECURITY INFO -->
+      <div class="sec-info">
+        <div class="sec-info-title">🔒 How your data stays private</div>
+        <div class="sec-item"><div class="sec-item-icon">🧠</div><div class="sec-item-text"><strong>Session-only storage.</strong> API keys are held in memory and cleared automatically when you close this tab. Nothing is written to disk or sent to any server.</div></div>
+        <div class="sec-item"><div class="sec-item-icon">🌐</div><div class="sec-item-text"><strong>Direct API calls only.</strong> Your browser talks directly to Square and Squarespace — no middleman, no proxy, no third-party service sees your data.</div></div>
+        <div class="sec-item"><div class="sec-item-icon">📄</div><div class="sec-item-text"><strong>Read-only tokens.</strong> Square and Squarespace API keys are configured with read-only access. They can pull transaction history — they cannot move money or change settings.</div></div>
+        <div class="sec-item"><div class="sec-item-icon">📊</div><div class="sec-item-text"><strong>Your Google Sheet, your account.</strong> Data is written directly to your Google Drive. The Apps Script URL is a long random token — practically unguessable.</div></div>
+        <div class="sec-item"><div class="sec-item-icon">💻</div><div class="sec-item-text"><strong>Weakest link: your Chromebook lock screen.</strong> Use a strong password and lock your screen when away. This is true of QuickBooks too.</div></div>
+      </div>
+
+      <div class="session-note">
+        ⚡ <strong>You'll re-enter keys once per session.</strong> This is intentional — it means keys never persist anywhere on your device. On your Chromebook, this takes about 15 seconds to paste back in.
+      </div>
+
+      <!-- STEP 1: Square -->
+      <div class="setup-step">
+        <div class="step-number">1</div>
+        <div class="step-title">Get Your Square API Key</div>
+        <div class="step-desc">Free, takes 2 minutes. Use a read-only Production token.</div>
+        <div class="step-instruction">
+          <ol>
+            <li>Go to <strong>developer.squareup.com</strong> — sign in with your Square account</li>
+            <li>Click <strong>"Create Application"</strong> → name it "SoPo Blooms Sync"</li>
+            <li>Click the app → go to <strong>Credentials</strong></li>
+            <li>Copy the <strong>Production Access Token</strong> (starts with <code>EAAAl...</code>)</li>
+            <li>In <strong>Permissions</strong>, ensure only <em>Orders Read</em> and <em>Payments Read</em> are checked</li>
+          </ol>
+        </div>
+        <div class="api-input-group">
+          <label class="api-input-label">Square Production Access Token</label>
+          <input class="api-input" type="password" id="sq-token" placeholder="EAAAl..." autocomplete="off">
+        </div>
+        <div class="api-input-group">
+          <label class="api-input-label">Square Location ID <span style="color:var(--ink-light);font-weight:400;">(Dashboard → Account → Locations)</span></label>
+          <input class="api-input" type="text" id="sq-location" placeholder="L..." autocomplete="off">
+        </div>
+      </div>
+
+      <!-- STEP 2: Squarespace -->
+      <div class="setup-step">
+        <div class="step-number">2</div>
+        <div class="step-title">Get Your Squarespace API Key</div>
+        <div class="step-desc">Enable Commerce read-only access only.</div>
+        <div class="step-instruction">
+          <ol>
+            <li>Log into Squarespace → <strong>Settings → Advanced → Developer Tools → API Keys</strong></li>
+            <li>Click <strong>"Generate Key"</strong>, name it "SoPo Sync"</li>
+            <li>Under permissions, check only <strong>Commerce → Orders (Read)</strong></li>
+            <li>Copy the key and paste below</li>
+          </ol>
+        </div>
+        <div class="api-input-group">
+          <label class="api-input-label">Squarespace API Key</label>
+          <input class="api-input" type="password" id="ssp-token" placeholder="Squarespace API key..." autocomplete="off">
+        </div>
+        <div class="api-input-group">
+          <label class="api-input-label">Squarespace Website ID <span style="color:var(--ink-light);font-weight:400;">(Settings → Advanced → Developer Tools)</span></label>
+          <input class="api-input" type="text" id="ssp-site" placeholder="5f3a..." autocomplete="off">
+        </div>
+      </div>
+
+      <!-- STEP 3: Google Sheet -->
+      <div class="setup-step">
+        <div class="step-number">3</div>
+        <div class="step-title">Connect Your Google Sheet</div>
+        <div class="step-desc">Deploy a free Google Apps Script that receives data and appends it to the correct tab.</div>
+        <div class="step-instruction">
+          <ol>
+            <li>Open your <strong>SoPo Blooms Financial Tracker</strong> in Google Sheets</li>
+            <li>Click <strong>Extensions → Apps Script</strong></li>
+            <li>Delete existing code, paste the script below, click <strong>Save</strong></li>
+            <li>Click <strong>Deploy → New Deployment → Web App</strong></li>
+            <li>Set "Who has access" → <strong>Anyone</strong>, click Deploy, authorize</li>
+            <li>Copy the Web App URL and paste it below</li>
+          </ol>
+        </div>
+        <div style="background:#1c1c1c;border-radius:8px;padding:1rem;margin-bottom:1rem;position:relative;">
+          <button onclick="copyScript()" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.15);border:none;color:white;padding:4px 10px;border-radius:4px;font-size:0.7rem;cursor:pointer;font-family:'DM Sans',sans-serif;">Copy</button>
+          <pre id="apps-script-code" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:#a8d8a8;white-space:pre-wrap;line-height:1.6;overflow-x:auto;">function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(data.tab) || ss.getSheetByName('\ud83d\udcca Master Ledger');
+    var rows = data.rows;
+    for (var i = 0; i < rows.length; i++) {
+      sheet.appendRow(rows[i]);
+    }
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'ok', added: rows.length}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error', message: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+        </div>
+        <div class="api-input-group">
+          <label class="api-input-label">Google Apps Script Web App URL</label>
+          <input class="sheets-input" type="text" id="gs-url" placeholder="https://script.google.com/macros/s/..." autocomplete="off">
+        </div>
+      </div>
+
+      <button class="btn-save-settings" onclick="saveSettings()">✓ Save for This Session</button>
+
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg">Done</span>
+</div>
+
+<script>
+// ── SESSION-ONLY STATE (never touches localStorage) ────────────────
+const session = {
+  sqToken: '', sqLocation: '',
+  sspToken: '', sspSite: '',
+  gsUrl: '',
+  configured: false
+};
+
+let totalRowsSynced = 0;
+let bankParsedData  = null;
+let pendingRows = [], pendingTab = '', pendingSource = '';
+let bankRawRows = [], bankHeaders = [];
+
+// ── INIT ───────────────────────────────────────────────────────────
+window.onload = () => {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const fmt = d => d.toISOString().slice(0,10);
+  ['sq-from','ssp-from'].forEach(id => document.getElementById(id).value = fmt(firstDay));
+  ['sq-to','ssp-to'].forEach(id   => document.getElementById(id).value = fmt(now));
+  document.getElementById('ch-date').value = fmt(now);
+
+  // Show session warning (keys always start empty)
+  document.getElementById('session-warn').classList.add('visible');
+  addLog('New session started — API keys cleared for security. Enter keys in Setup.', 'info');
+  updateCharityUI();
+};
+
+// ── SETTINGS (session memory only) ────────────────────────────────
+function saveSettings() {
+  session.sqToken    = document.getElementById('sq-token').value.trim();
+  session.sqLocation = document.getElementById('sq-location').value.trim();
+  session.sspToken   = document.getElementById('ssp-token').value.trim();
+  session.sspSite    = document.getElementById('ssp-site').value.trim();
+  session.gsUrl      = document.getElementById('gs-url').value.trim();
+  session.configured = true;
+
+  updateStatusDots();
+  closeSetup();
+  document.getElementById('session-warn').classList.remove('visible');
+  showToast('✓ Keys saved for this session.', 'success');
+  addLog('API keys loaded into session memory. Will clear on tab close.', 'success');
+}
+
+function updateStatusDots() {
+  setDot('sq', session.sqToken && session.sqLocation);
+  setDot('ss', session.sspToken && session.sspSite);
+  setDot('gs', !!session.gsUrl);
+}
+
+function setDot(prefix, ok) {
+  const dotId = prefix === 'ss' ? 'ss-dot' : prefix + '-dot';
+  const txtId = prefix === 'ss' ? 'ss-status' : prefix + '-status';
+  const dot = document.getElementById(dotId);
+  const txt = document.getElementById(txtId);
+  if (!dot || !txt) return;
+  dot.className = 'status-dot' + (ok ? ' connected' : ' warning');
+  txt.innerHTML = `<span class="status-dot ${ok?'connected':'warning'}"></span>${ok ? 'Connected' : 'Not configured'}`;
+}
+
+// ── SQUARE CSV ─────────────────────────────────────────────────────
+let squareCSVData = null;
+let squarespaceCSVData = null;
+
+function handleDragOverGeneric(e, zoneId) { e.preventDefault(); document.getElementById(zoneId).classList.add('dragover'); }
+function handleDragLeaveGeneric(zoneId)   { document.getElementById(zoneId).classList.remove('dragover'); }
+
+function handleDropGeneric(e, source, zoneId) {
+  e.preventDefault(); handleDragLeaveGeneric(zoneId);
+  const file = e.dataTransfer.files[0];
+  if (file?.name.endsWith('.csv')) processCSVFile(file, source);
+  else showToast('Please drop a .csv file','error');
+}
+
+function handleCSVFile(e, source) {
+  if (e.target.files[0]) processCSVFile(e.target.files[0], source);
+}
+
+function processCSVFile(file, source) {
+  document.getElementById(source+'-filename').textContent = '📄 '+file.name;
+  document.getElementById(source+'-btn').disabled = false;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const parsed = parseCSV(e.target.result);
+    if (source === 'sq')  squareCSVData = parsed;
+    if (source === 'ssp') squarespaceCSVData = parsed;
+    addLog(`Loaded "${file.name}" — ${parsed.rows.length} rows detected.`,'info');
+  };
+  reader.readAsText(file);
+}
+
+function processSquareCSV() {
+  if (!squareCSVData) { showToast('Please select a Square CSV file first.','warn'); return; }
+  const {headers, rows} = squareCSVData;
+  const h = headers.map(x => x.toLowerCase().replace(/[^a-z0-9]/g,''));
+  const find = patterns => { for (const p of patterns) { const i=h.findIndex(x=>x.includes(p)); if(i>=0)return i; } return -1; };
+  const dateIdx  = find(['date','time','created','transaction']);
+  const descIdx  = find(['desc','item','detail','name','note']);
+  const grossIdx = find(['gross','total','amount','sale','revenue']);
+  const feeIdx   = find(['fee','processing']);
+  const netIdx   = find(['net']);
+
+  const processed = rows.map(r => {
+    const date  = dateIdx  >= 0 ? (r[dateIdx]||'').slice(0,10) : '';
+    const desc  = descIdx  >= 0 ? r[descIdx]  : 'Square Sale';
+    const gross = parseFloat(String(grossIdx >= 0 ? r[grossIdx] : '').replace(/[$,]/g,'')) || 0;
+    const fees  = Math.abs(parseFloat(String(feeIdx >= 0 ? r[feeIdx] : '').replace(/[$,]/g,'')) || 0);
+    const net   = netIdx >= 0 ? parseFloat(String(r[netIdx]).replace(/[$,]/g,'')) || (gross-fees) : gross-fees;
+    return [date, r[1]||'', desc, gross, fees, net, 'Card', 'Square POS', 'In-Store Sales'];
+  }).filter(r => r[0] || r[3]);
+
+  const total = processed.reduce((s,r)=>s+(r[3]||0),0);
+  document.getElementById('sum-square').textContent = '$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
+  document.getElementById('sq-last').textContent = new Date().toLocaleString();
+  document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
+  showPreview(processed,['Date','Transaction ID','Description','Gross ($)','Fees ($)','Net ($)','Method','Source','Category'],`Square POS — ${processed.length} transactions`,'📥 Square Import');
+  addLog(`Square CSV: ${processed.length} transactions, total $${total.toFixed(2)}`,'success');
+}
+
+function processSquarespaceCSV() {
+  if (!squarespaceCSVData) { showToast('Please select a Squarespace CSV file first.','warn'); return; }
+  const {headers, rows} = squarespaceCSVData;
+  const h = headers.map(x => x.toLowerCase().replace(/[^a-z0-9]/g,''));
+  const find = patterns => { for (const p of patterns) { const i=h.findIndex(x=>x.includes(p)); if(i>=0)return i; } return -1; };
+  const dateIdx     = find(['date','created','order']);
+  const orderIdx    = find(['order','number','id']);
+  const nameIdx     = find(['name','customer','billing','buyer']);
+  const totalIdx    = find(['total','grand','amount','revenue']);
+  const shippingIdx = find(['ship','delivery','freight']);
+
+  const processed = rows.map(r => {
+    const date     = dateIdx     >= 0 ? (r[dateIdx]||'').slice(0,10) : '';
+    const order    = orderIdx    >= 0 ? r[orderIdx]   : '';
+    const customer = nameIdx     >= 0 ? r[nameIdx]    : '';
+    const total    = parseFloat(String(totalIdx    >= 0 ? r[totalIdx]    : '').replace(/[$,]/g,'')) || 0;
+    const shipping = parseFloat(String(shippingIdx >= 0 ? r[shippingIdx] : '').replace(/[$,]/g,'')) || 0;
+    return [date, order, customer, 'Online order', total, shipping, total-shipping, 'Squarespace', 'Online Sales'];
+  }).filter(r => r[0] || r[4]);
+
+  const totalRev = processed.reduce((s,r)=>s+(r[4]||0),0);
+  document.getElementById('sum-ss').textContent = '$'+totalRev.toLocaleString('en-US',{maximumFractionDigits:0});
+  document.getElementById('ssp-last').textContent = new Date().toLocaleString();
+  document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
+  showPreview(processed,['Date','Order #','Customer','Items','Total ($)','Shipping ($)','Net ($)','Source','Category'],`Squarespace — ${processed.length} orders`,'📥 Squarespace Import');
+  addLog(`Squarespace CSV: ${processed.length} orders, total $${totalRev.toFixed(2)}`,'success');
+}
+
+// ── BANK CSV ───────────────────────────────────────────────────────
+function handleDragOver(e) { e.preventDefault(); document.getElementById('bank-drop').classList.add('dragover'); }
+function handleDragLeave()  { document.getElementById('bank-drop').classList.remove('dragover'); }
+function handleDrop(e) {
+  e.preventDefault(); handleDragLeave();
+  const file = e.dataTransfer.files[0];
+  if (file?.name.endsWith('.csv')) processFile(file);
+  else showToast('Please drop a .csv file','error');
+}
+function handleBankFile(e) { if (e.target.files[0]) processFile(e.target.files[0]); }
+
+function processFile(file) {
+  document.getElementById('bank-filename').textContent = '📄 '+file.name;
+  document.getElementById('bank-btn').disabled = false;
+  const reader = new FileReader();
+  reader.onload = e => {
+    bankParsedData = parseCSV(e.target.result);
+    addLog(`Loaded "${file.name}" — ${bankParsedData.rows.length} rows detected.`,'info');
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return {headers:[],rows:[]};
+  const parseRow = line => {
+    const result=[]; let inQ=false, cur='';
+    for (const ch of line) {
+      if (ch==='"') inQ=!inQ;
+      else if (ch===',' && !inQ) { result.push(cur.trim()); cur=''; }
+      else cur+=ch;
+    }
+    result.push(cur.trim()); return result;
+  };
+  return { headers: parseRow(lines[0]), rows: lines.slice(1).filter(l=>l.trim()).map(parseRow) };
+}
+
+function detectColumns(headers) {
+  const h = headers.map(x => x.toLowerCase().replace(/[^a-z0-9]/g,''));
+  const find = patterns => { for (const p of patterns) { const i=h.findIndex(x=>x.includes(p)); if(i>=0)return i; } return -1; };
+  return {
+    date:   find(['date','time','posted','transdate','settl']),
+    desc:   find(['desc','memo','payee','narration','detail','name','merchant','ref']),
+    amount: find(['amount','debit','credit','sum','total','value','amt']),
+  };
+}
+
+function processBankCSV() {
+  if (!bankParsedData) { showToast('Please select a CSV file first.','warn'); return; }
+  const {headers, rows} = bankParsedData;
+  bankHeaders = headers; bankRawRows = rows;
+  const detected = detectColumns(headers);
+
+  const mapBox = document.getElementById('col-map-box');
+  const mapGrid = document.getElementById('col-map-grid');
+  mapBox.style.display = 'block';
+  mapGrid.innerHTML = '';
+
+  [
+    {key:'date',  label:'Date Column',        idx:detected.date},
+    {key:'desc',  label:'Description Column',  idx:detected.desc},
+    {key:'amount',label:'Amount Column',        idx:detected.amount},
+  ].forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'col-map-item';
+    div.innerHTML = `<div class="col-map-label">${f.label}</div>
+      <select class="col-map-select" id="map-${f.key}">
+        <option value="-1">-- select --</option>
+        ${headers.map((h,i)=>`<option value="${i}" ${i===f.idx?'selected':''}>${h}</option>`).join('')}
+      </select>`;
+    mapGrid.appendChild(div);
+  });
+
+  buildBankPreview();
+  ['map-date','map-desc','map-amount'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', buildBankPreview);
+  });
+  addLog(`Bank CSV: auto-detected Date="${headers[detected.date]||'?'}", Desc="${headers[detected.desc]||'?'}", Amount="${headers[detected.amount]||'?'}"`, 'info');
+}
+
+function buildBankPreview() {
+  const di = parseInt(document.getElementById('map-date')?.value ?? -1);
+  const ri = parseInt(document.getElementById('map-desc')?.value ?? -1);
+  const ai = parseInt(document.getElementById('map-amount')?.value ?? -1);
+
+  const rows = bankRawRows.map(r => {
+    const date   = di>=0 ? r[di] : '';
+    const desc   = ri>=0 ? r[ri] : '';
+    const rawAmt = ai>=0 ? r[ai] : '';
+    const amount = parseFloat(String(rawAmt).replace(/[$,()]/g,'')) || 0;
+    const isDebit = amount < 0 || String(rawAmt).includes('(') || String(rawAmt).includes('-');
+    const abs    = Math.abs(amount);
+    const cat    = guessCategory(desc);
+    return [date, desc, isDebit?abs:'', isDebit?'':abs, cat, 'Bank/Card Import'];
+  }).filter(r=>r[0]||r[1]);
+
+  const expTotal = rows.reduce((s,r)=>s+(parseFloat(r[2])||0),0);
+  document.getElementById('sum-expenses').textContent = '$'+expTotal.toLocaleString('en-US',{maximumFractionDigits:0});
+
+  showPreview(rows,['Date','Description','Expense ($)','Income ($)','Category','Source'],`Bank / Card — ${rows.length} transactions`,'📥 Bank & Card Import');
+}
+
+function guessCategory(desc) {
+  const d = (desc||'').toLowerCase();
+  if (/flower|bloom|floral|plant|garden|wholesale|nursery/.test(d)) return 'Flowers & Plants';
+  if (/uline|packaging|supply|supplies|box|wrap|ribbon/.test(d))    return 'Supplies & Packaging';
+  if (/square|stripe|paypal|merchant|processing/.test(d))           return 'Merchant Fees';
+  if (/squarespace|quickbooks|mailchimp|google|adobe|software|subscription/.test(d)) return 'Software & Subscriptions';
+  if (/rent|lease|electric|gas util|water|utility/.test(d))         return 'Rent / Utilities';
+  if (/facebook|instagram|meta|google ads|advertising|marketing/.test(d)) return 'Marketing & Advertising';
+  if (/shell|exxon|mobil|chevron|bp|sunoco|fuel|gas station/.test(d)) return 'Vehicle / Gas';
+  if (/parking|toll|turnpike|ezpass/.test(d))                       return 'Parking & Tolls';
+  if (/restaurant|cafe|coffee|lunch|dinner|meal/.test(d))           return 'Meals & Entertainment';
+  if (/accountant|attorney|lawyer|cpa|bookkeep/.test(d))            return 'Professional Services';
+  if (/food pantry|shelter|charity|nonprofit|foundation|humane/.test(d)) return 'Charitable Donations';
+  return 'Miscellaneous';
+}
+
+// ── CHARITABLE GIVING ──────────────────────────────────────────────
+const taxNotes = {
+  cash: '📋 <strong>Schedule A:</strong> Personal itemized deduction — not on your business Schedule C. Keep charity acknowledgment letter for donations $250+.',
+  inkind: '🌸 <strong>In-Kind:</strong> Deduct your <u>cost basis only</u> (what you paid for the flowers). The retail value is for your records — do NOT deduct it. Cost was already captured when you bought the inventory.',
+  sponsorship: '📣 <strong>Schedule C — Marketing:</strong> Deductible as an advertising expense because you receive a business benefit (logo, mention, table). Keep the sponsorship agreement as documentation.'
+};
+
+function updateCharityUI() {
+  const type = document.getElementById('ch-type').value;
+  document.getElementById('ch-tax-note').innerHTML = taxNotes[type] || '';
+  const inkindGroup = document.getElementById('ch-inkind-group');
+  const amountGroup = document.getElementById('ch-amount-group');
+  if (type === 'inkind') {
+    inkindGroup.style.display = 'grid';
+    amountGroup.style.display = 'none';
+  } else {
+    inkindGroup.style.display = 'none';
+    amountGroup.style.display = 'block';
+    document.getElementById('ch-amount-label').textContent = type==='sponsorship' ? 'Sponsorship Amount ($)' : 'Cash Amount ($)';
+  }
+}
+
+function addCharityEntry() {
+  const type  = document.getElementById('ch-type').value;
+  const date  = document.getElementById('ch-date').value;
+  const org   = document.getElementById('ch-org').value.trim();
+  const desc  = document.getElementById('ch-desc').value.trim();
+
+  if (!org) { showToast('Please enter the organization name.','warn'); return; }
+
+  let row;
+  if (type === 'inkind') {
+    const cost   = parseFloat(document.getElementById('ch-cost').value)||0;
+    const retail = parseFloat(document.getElementById('ch-retail').value)||0;
+    if (!cost) { showToast('Please enter your cost basis.','warn'); return; }
+    const taxTreatment = 'In-Kind: cost basis only — already in COGS, do not double-deduct';
+    row = [date, org, 'In-Kind (flowers/product)', desc, '', cost, retail, taxTreatment, 'Keep documentation'];
+  } else {
+    const amount = parseFloat(document.getElementById('ch-amount').value)||0;
+    if (!amount) { showToast('Please enter an amount.','warn'); return; }
+    const isSponsor = type === 'sponsorship';
+    const taxTreatment = isSponsor ? 'Schedule C — Marketing/Advertising deduction' : 'Schedule A — personal itemized (not Schedule C)';
+    row = [date, org, isSponsor ? 'Sponsorship' : 'Cash/Check', desc, amount, '', '', taxTreatment, 'Keep receipt/agreement'];
+  }
+
+  showPreview([row],
+    ['Date','Organization','Type','Description','Cash ($)','In-Kind Cost ($)','Retail Value ($)','Tax Treatment','Notes'],
+    `Charitable Giving — ${org}`,
+    '🎁 Charitable Giving'
+  );
+
+  ['ch-org','ch-desc','ch-amount','ch-cost','ch-retail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value='';
+  });
+  addLog(`Charitable entry staged: "${org}" — ${type}`, 'info');
+}
+
+// ── MANUAL ENTRY ───────────────────────────────────────────────────
+function addManualEntry() {
+  const type   = document.getElementById('manual-type').value;
+  const amount = parseFloat(document.getElementById('manual-amount').value);
+  const desc   = document.getElementById('manual-desc').value.trim();
+  if (!amount || !desc) { showToast('Please fill in amount and description.','warn'); return; }
+  const date = new Date().toISOString().slice(0,10);
+  const isExp = type === 'expense';
+  const row = [date, type==='cash-sale'?'Cash Sale':type==='check'?'Check':'Expense', desc,
+    type==='cash-sale'?'Cash Sales':type==='check'?'Invoices':'Miscellaneous',
+    isExp?'':amount, isExp?amount:'', 'Manual Entry'];
+  showPreview([row],['Date','Type','Description','Category','Income ($)','Expense ($)','Source'],`Manual Entry — ${desc}`,'✏️ Cash & Manual Entry');
+  document.getElementById('manual-amount').value='';
+  document.getElementById('manual-desc').value='';
+  addLog(`Manual entry staged: "${desc}" — $${amount.toFixed(2)}`,'info');
+}
+
+// ── PREVIEW ────────────────────────────────────────────────────────
+function showPreview(rows, headers, title, tab) {
+  pendingRows=rows; pendingTab=tab; pendingSource=title;
+  document.getElementById('preview-title').textContent = title;
+  document.getElementById('preview-badge').textContent = rows.length+' rows';
+
+  const thead = document.getElementById('preview-thead');
+  const tbody = document.getElementById('preview-tbody');
+  thead.innerHTML = '<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  tbody.innerHTML = '';
+
+  rows.slice(0,50).forEach(row => {
+    const tr = document.createElement('tr');
+    row.forEach((cell,i) => {
+      const td = document.createElement('td');
+      const v = cell??'';
+      const num = parseFloat(String(v).replace(/[$,]/g,''));
+      const hdr = (headers[i]||'').toLowerCase();
+      if (!isNaN(num) && num>0 && String(v).match(/^\$?[\d,]+\.?\d*$/)) {
+        if (hdr.includes('expense')||hdr.includes('fee')||hdr.includes('debit')||hdr.includes('cost')) {
+          td.className='amount-neg'; td.textContent=`($${num.toFixed(2)})`;
+        } else if (hdr.includes('income')||hdr.includes('gross')||hdr.includes('net')||hdr.includes('total')||hdr.includes('cash')) {
+          td.className='amount-pos'; td.textContent=`$${num.toFixed(2)}`;
+        } else { td.textContent=v; }
+      } else if (hdr.includes('category')||hdr.includes('treatment')) {
+        td.className='cat-cell'; td.textContent=v;
+      } else { td.textContent=v; }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  if (rows.length>50) {
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');
+    td.colSpan=headers.length;
+    td.style.cssText='text-align:center;color:var(--ink-light);font-style:italic;padding:8px;';
+    td.textContent=`... and ${rows.length-50} more rows`;
+    tr.appendChild(td); tbody.appendChild(tr);
+  }
+
+  document.getElementById('preview-section').classList.add('visible');
+  document.getElementById('preview-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function cancelPreview() {
+  document.getElementById('preview-section').classList.remove('visible');
+  document.getElementById('col-map-box').style.display='none';
+  pendingRows=[]; addLog('Preview cancelled.','info');
+}
+
+// ── CONFIRM IMPORT → SHEET ─────────────────────────────────────────
+async function confirmImport() {
+  if (!pendingRows.length) return;
+  if (!session.gsUrl) { showToast('⚙ Add your Google Sheet URL in Setup first.','warn'); openSetup(); return; }
+
+  const btn = document.getElementById('preview-confirm-btn');
+  btn.disabled=true; btn.textContent='Sending to Sheet...';
+  addLog(`Sending ${pendingRows.length} rows to Sheet tab "${pendingTab}"...`,'info');
+
+  try {
+    await fetch(session.gsUrl, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tab:pendingTab, rows:pendingRows, source:pendingSource, timestamp:new Date().toISOString()})
+    });
+    totalRowsSynced += pendingRows.length;
+    document.getElementById('sum-rows').textContent = totalRowsSynced;
+    document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
+    addLog(`✓ ${pendingRows.length} rows sent to "${pendingTab}".`,'success');
+    showToast(`✓ ${pendingRows.length} rows added to your Sheet!`,'success');
+    cancelPreview();
+  } catch(err) {
+    addLog('Failed to reach Google Sheet: '+err.message,'error');
+    showToast('Could not reach Google Sheet — check the URL in Setup.','error');
+  }
+  btn.disabled=false; btn.textContent='✓ Confirm & Send to Sheet';
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────
+function setBtnLoading(prefix, loading) {
+  const map = { sq:{spin:'sq-spin',btn:'sq-btn',txt:'sq-btn-text',label:'Sync Square'}, ssp:{spin:'ssp-spin',btn:'ssp-btn',txt:'ssp-btn-text',label:'Sync Squarespace'}, bank:{spin:'bank-spin',btn:'bank-btn',txt:'bank-btn-text',label:'Preview & Import'} };
+  const m = map[prefix]; if (!m) return;
+  document.getElementById(m.spin).style.display = loading?'block':'none';
+  document.getElementById(m.btn).disabled = loading;
+  document.getElementById(m.txt).textContent = loading?'Syncing...':m.label;
+}
+
+function addLog(msg, type='info') {
+  const c = document.getElementById('log-entries');
+  const empty = c.querySelector('.log-empty');
+  if (empty) empty.remove();
+  const entry = document.createElement('div');
+  entry.className='log-entry';
+  const time = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  entry.innerHTML=`<span class="log-time">${time}</span><span class="log-msg ${type}">${msg}</span>`;
+  c.insertBefore(entry, c.firstChild);
+  while (c.children.length>50) c.removeChild(c.lastChild);
+}
+
+function clearLog() { document.getElementById('log-entries').innerHTML='<div class="log-empty">Log cleared.</div>'; }
+
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = type==='error'?'✕':type==='warn'?'⚠':'✓';
+  document.getElementById('toast-msg').textContent=msg;
+  t.className=`toast show${type==='error'?' error':type==='warn'?' warn':''}`;
+  setTimeout(()=>t.className='toast',3500);
+}
+
+function openSetup()  { document.getElementById('setup-modal').classList.add('open'); }
+function closeSetup() { document.getElementById('setup-modal').classList.remove('open'); }
+
+function copyScript() {
+  navigator.clipboard.writeText(document.getElementById('apps-script-code').textContent)
+    .then(()=>showToast('✓ Script copied!','success'));
+}
+
+document.getElementById('setup-modal').addEventListener('click', function(e) {
+  if (e.target===this) closeSetup();
+});
+</script>
+</body>
+</html>
