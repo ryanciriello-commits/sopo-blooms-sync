@@ -740,26 +740,45 @@ function processSquareCSV() {
   const {headers, rows} = squareCSVData;
   const h = headers.map(x => x.toLowerCase().replace(/[^a-z0-9]/g,''));
   const find = patterns => { for (const p of patterns) { const i=h.findIndex(x=>x.includes(p)); if(i>=0)return i; } return -1; };
-  const dateIdx  = find(['date','time','created','transaction']);
-  const descIdx  = find(['desc','item','detail','name','note']);
-  const grossIdx = find(['gross','total','amount','sale','revenue']);
-  const feeIdx   = find(['fee','processing']);
-  const netIdx   = find(['net']);
 
-  const processed = rows.map(r => {
-    const date  = dateIdx  >= 0 ? (r[dateIdx]||'').slice(0,10) : '';
-    const desc  = descIdx  >= 0 ? r[descIdx]  : 'Square Sale';
-    const gross = parseFloat(String(grossIdx >= 0 ? r[grossIdx] : '').replace(/[$,]/g,'')) || 0;
-    const fees  = Math.abs(parseFloat(String(feeIdx >= 0 ? r[feeIdx] : '').replace(/[$,]/g,'')) || 0);
-    const net   = netIdx >= 0 ? parseFloat(String(r[netIdx]).replace(/[$,]/g,'')) || (gross-fees) : gross-fees;
-    return [date, r[1]||'', desc, gross, fees, net, 'Card', 'Square POS', 'In-Store Sales'];
-  }).filter(r => r[0] || r[3]);
+  // Column detection — handles both Item Sales and Transaction exports
+  const dateIdx  = find(['date']);
+  const timeIdx  = find(['time']);
+  const descIdx  = find(['itemization','item name','description','name','detail']);
+  const grossIdx = find(['gross sale','gross amount','gross','total collected','total']);
+  const feeIdx   = find(['fee','processing']);
+  const netIdx   = find(['net sale','net amount','net']);
+  const methodIdx= find(['payment','method','card','tender']);
+
+  // Filter out Sales Tax rows, empty rows, and header-like rows
+  const filtered = rows.filter(r => {
+    const desc = descIdx >= 0 ? (r[descIdx]||'') : (r[0]||'');
+    const isSalesTax = /sales.?tax/i.test(desc);
+    const isEmpty = r.every(cell => !cell || cell.trim() === '');
+    const gross = parseFloat(String(grossIdx >= 0 ? r[grossIdx] : r[3]||'').replace(/[$,]/g,'')) || 0;
+    return !isSalesTax && !isEmpty && (gross > 0 || desc);
+  });
+
+  const processed = filtered.map(r => {
+    // Build date — combine date + time columns if separate, or just use date
+    let date = dateIdx >= 0 ? (r[dateIdx]||'') : '';
+    if (date && date.length > 10) date = date.slice(0,10); // trim if datetime
+    if (!date && timeIdx >= 0) date = (r[timeIdx]||'').slice(0,10);
+
+    const desc   = descIdx  >= 0 ? (r[descIdx]||'Square Sale')  : 'Square Sale';
+    const gross  = parseFloat(String(grossIdx >= 0 ? r[grossIdx] : '').replace(/[$,()-]/g,'')) || 0;
+    const fees   = Math.abs(parseFloat(String(feeIdx >= 0 ? r[feeIdx] : '').replace(/[$,()-]/g,'')) || 0);
+    const net    = netIdx >= 0 ? Math.abs(parseFloat(String(r[netIdx]).replace(/[$,()-]/g,'')) || (gross-fees)) : gross-fees;
+    const method = methodIdx >= 0 ? (r[methodIdx]||'Card') : 'Card';
+
+    return [date, '', desc, gross, fees, net, method, 'Square POS', 'In-Store Sales'];
+  }).filter(r => r[0] || r[3] > 0);
 
   const total = processed.reduce((s,r)=>s+(r[3]||0),0);
   document.getElementById('sum-square').textContent = '$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
   document.getElementById('sq-last').textContent = new Date().toLocaleString();
   document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
-  showPreview(processed,['Date','Transaction ID','Description','Gross ($)','Fees ($)','Net ($)','Method','Source','Category'],`Square POS — ${processed.length} transactions`,'📥 Square Import');
+  showPreview(processed,['Date','Ref','Description','Gross ($)','Fees ($)','Net ($)','Method','Source','Category'],`Square POS — ${processed.length} transactions`,'📥 Square Import');
   addLog(`Square CSV: ${processed.length} transactions, total $${total.toFixed(2)}`,'success');
 }
 
