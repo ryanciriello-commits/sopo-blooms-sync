@@ -829,21 +829,23 @@ function processSquarespaceCSV() {
   });
 
   const processed = deduped.map(r => {
-    const date     = dIdx >= 0 ? (r[dIdx]||'').slice(0,10)                          : '';
-    const order    = oIdx >= 0 ? (r[oIdx]||'')                                       : '';
-    const customer = nIdx >= 0 ? (r[nIdx]||'')                                       : '';
-    const item     = iIdx >= 0 ? (r[iIdx]||'Online order')                           : 'Online order';
+    const date     = dIdx >= 0 ? (r[dIdx]||'').slice(0,10)                            : '';
+    const order    = oIdx >= 0 ? (r[oIdx]||'')                                         : '';
+    const customer = nIdx >= 0 ? (r[nIdx]||'')                                         : '';
+    // If item name is blank, fall back to 'Online order'
+    const rawItem  = iIdx >= 0 ? (r[iIdx]||'').trim()                                  : '';
+    const item     = rawItem || 'Online order';
     const total    = parseFloat(String(tIdx >= 0 ? r[tIdx] : '').replace(/[$,]/g,'')) || 0;
     const shipping = parseFloat(String(sIdx >= 0 ? r[sIdx] : '').replace(/[$,]/g,'')) || 0;
-    const method   = mIdx >= 0 ? (r[mIdx]||'Online')                                 : 'Online';
-    return [date, order, customer, item, total, shipping, parseFloat((total-shipping).toFixed(2)), method, 'Online Sales'];
+    // Only 7 columns to match the Sheet template exactly
+    return [date, order, customer, item, total, shipping, parseFloat((total-shipping).toFixed(2))];
   }).filter(r => r[0] || r[4] > 0);
 
   const totalRev = processed.reduce((s,r)=>s+(r[4]||0),0);
   document.getElementById('sum-ss').textContent = '$'+totalRev.toLocaleString('en-US',{maximumFractionDigits:0});
   document.getElementById('ssp-last').textContent = new Date().toLocaleString();
   document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
-  showPreview(processed,['Date','Order #','Customer','Item','Total ($)','Shipping ($)','Net ($)','Payment','Category'],`Squarespace — ${processed.length} orders`,'📥 Squarespace Import');
+  showPreview(processed,['Order Date','Order #','Customer Name','Items Ordered','Order Total ($)','Shipping ($)','Net Revenue ($)'],`Squarespace — ${processed.length} orders`,'📥 Squarespace Import');
   addLog(`Squarespace CSV: ${processed.length} orders, total $${totalRev.toFixed(2)}`,'success');
 }
 
