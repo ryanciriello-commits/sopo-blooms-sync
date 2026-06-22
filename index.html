@@ -788,28 +788,62 @@ function processSquareCSV() {
 function processSquarespaceCSV() {
   if (!squarespaceCSVData) { showToast('Please select a Squarespace CSV file first.','warn'); return; }
   const {headers, rows} = squarespaceCSVData;
-  const h = headers.map(x => x.toLowerCase().replace(/[^a-z0-9]/g,''));
-  const find = patterns => { for (const p of patterns) { const i=h.findIndex(x=>x.includes(p)); if(i>=0)return i; } return -1; };
-  const dateIdx     = find(['date','created','order']);
-  const orderIdx    = find(['order','number','id']);
-  const nameIdx     = find(['name','customer','billing','buyer']);
-  const totalIdx    = find(['total','grand','amount','revenue']);
-  const shippingIdx = find(['ship','delivery','freight']);
+  const h = headers.map(x => x.toLowerCase().trim());
 
-  const processed = rows.map(r => {
-    const date     = dateIdx     >= 0 ? (r[dateIdx]||'').slice(0,10) : '';
-    const order    = orderIdx    >= 0 ? r[orderIdx]   : '';
-    const customer = nameIdx     >= 0 ? r[nameIdx]    : '';
-    const total    = parseFloat(String(totalIdx    >= 0 ? r[totalIdx]    : '').replace(/[$,]/g,'')) || 0;
-    const shipping = parseFloat(String(shippingIdx >= 0 ? r[shippingIdx] : '').replace(/[$,]/g,'')) || 0;
-    return [date, order, customer, 'Online order', total, shipping, total-shipping, 'Squarespace', 'Online Sales'];
-  }).filter(r => r[0] || r[4]);
+  // Exact column matching for Squarespace Orders CSV
+  const dateIdx     = h.indexOf('created at');
+  const orderIdx    = h.indexOf('order id');
+  const nameIdx     = h.indexOf('billing name');
+  const itemIdx     = h.indexOf('lineitem name');
+  const totalIdx    = h.indexOf('total');
+  const shippingIdx = h.indexOf('shipping');
+  const statusIdx   = h.indexOf('financial status');
+  const methodIdx   = h.indexOf('payment method');
+
+  // Fallback fuzzy matching
+  const find = patterns => { for (const p of patterns) { const i=h.findIndex(x=>x.includes(p)); if(i>=0)return i; } return -1; };
+  const dIdx = dateIdx     >= 0 ? dateIdx     : find(['created','date']);
+  const oIdx = orderIdx    >= 0 ? orderIdx    : find(['order id','order']);
+  const nIdx = nameIdx     >= 0 ? nameIdx     : find(['billing name','customer','name']);
+  const iIdx = itemIdx     >= 0 ? itemIdx     : find(['lineitem name','item','product']);
+  const tIdx = totalIdx    >= 0 ? totalIdx    : find(['total']);
+  const sIdx = shippingIdx >= 0 ? shippingIdx : find(['shipping']);
+  const mIdx = methodIdx   >= 0 ? methodIdx   : find(['payment method','payment']);
+
+  // Filter out refunded, cancelled, and empty rows
+  const filtered = rows.filter(r => {
+    const isEmpty = r.every(cell => !cell || cell.trim() === '');
+    const status  = statusIdx >= 0 ? (r[statusIdx]||'').toLowerCase() : '';
+    const isVoid  = status === 'refunded' || status === 'voided';
+    const total   = parseFloat(String(tIdx >= 0 ? r[tIdx] : '').replace(/[$,]/g,'')) || 0;
+    return !isEmpty && !isVoid && total > 0;
+  });
+
+  // Deduplicate — Squarespace repeats the order row for each line item
+  const seen = new Set();
+  const deduped = filtered.filter(r => {
+    const orderId = oIdx >= 0 ? r[oIdx] : '';
+    if (seen.has(orderId)) return false;
+    seen.add(orderId);
+    return true;
+  });
+
+  const processed = deduped.map(r => {
+    const date     = dIdx >= 0 ? (r[dIdx]||'').slice(0,10)                          : '';
+    const order    = oIdx >= 0 ? (r[oIdx]||'')                                       : '';
+    const customer = nIdx >= 0 ? (r[nIdx]||'')                                       : '';
+    const item     = iIdx >= 0 ? (r[iIdx]||'Online order')                           : 'Online order';
+    const total    = parseFloat(String(tIdx >= 0 ? r[tIdx] : '').replace(/[$,]/g,'')) || 0;
+    const shipping = parseFloat(String(sIdx >= 0 ? r[sIdx] : '').replace(/[$,]/g,'')) || 0;
+    const method   = mIdx >= 0 ? (r[mIdx]||'Online')                                 : 'Online';
+    return [date, order, customer, item, total, shipping, parseFloat((total-shipping).toFixed(2)), method, 'Online Sales'];
+  }).filter(r => r[0] || r[4] > 0);
 
   const totalRev = processed.reduce((s,r)=>s+(r[4]||0),0);
   document.getElementById('sum-ss').textContent = '$'+totalRev.toLocaleString('en-US',{maximumFractionDigits:0});
   document.getElementById('ssp-last').textContent = new Date().toLocaleString();
   document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
-  showPreview(processed,['Date','Order #','Customer','Items','Total ($)','Shipping ($)','Net ($)','Source','Category'],`Squarespace — ${processed.length} orders`,'📥 Squarespace Import');
+  showPreview(processed,['Date','Order #','Customer','Item','Total ($)','Shipping ($)','Net ($)','Payment','Category'],`Squarespace — ${processed.length} orders`,'📥 Squarespace Import');
   addLog(`Squarespace CSV: ${processed.length} orders, total $${totalRev.toFixed(2)}`,'success');
 }
 
