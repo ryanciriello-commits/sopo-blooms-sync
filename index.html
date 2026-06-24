@@ -972,7 +972,7 @@ function buildBankPreviewFixed() {
 
   const expTotal = rows.filter(r=>r[4]==='Debit').reduce((s,r)=>s+(Math.abs(parseFloat(r[3]))||0),0);
   document.getElementById('sum-expenses').textContent = '$'+expTotal.toLocaleString('en-US',{maximumFractionDigits:0});
-  showPreview(rows,['Date','Description (from bank)','Category','Amount ($)','Debit / Credit','Running Balance ($)','Notes'],`Bank / Card — ${rows.length} transactions`,'📥 Bank & Card Import');
+  showPreview(rows,['Date','Description (from bank)','Category','Amount ($)','Debit / Credit','Running Balance ($)','Notes'],`Bank / Card — ${rows.length} transactions`,'Bank & Card Import');
 }
 
 function buildBankPreview() {
@@ -994,7 +994,7 @@ function buildBankPreview() {
   const expTotal = rows.reduce((s,r)=>s+(parseFloat(r[2])||0),0);
   document.getElementById('sum-expenses').textContent = '$'+expTotal.toLocaleString('en-US',{maximumFractionDigits:0});
 
-  showPreview(rows,['Date','Description','Expense ($)','Income ($)','Category','Source'],`Bank / Card — ${rows.length} transactions`,'📥 Bank & Card Import');
+  showPreview(rows,['Date','Description','Expense ($)','Income ($)','Category','Source'],`Bank / Card — ${rows.length} transactions`,'Bank & Card Import');
 }
 
 function guessCategory(desc) {
