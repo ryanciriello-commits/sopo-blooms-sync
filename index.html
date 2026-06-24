@@ -965,7 +965,7 @@ function buildBankPreviewFixed() {
       cat,
       signedAmt,          // negative = expense, positive = income
       isExpense ? 'Debit' : 'Credit',
-      '',                 // Running Balance — blank
+      parseFloat((r[4]||'').replace(/[$,()]/g,'')) || '',  // Running Balance from CSV column E
       ''                  // Notes — blank
     ];
   }).filter(r => r[0] && r[1] && r[3] !== 0);
