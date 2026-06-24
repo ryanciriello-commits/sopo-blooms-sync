@@ -900,18 +900,26 @@ function processBankCSV() {
   if (!bankParsedData) { showToast('Please select a CSV file first.','warn'); return; }
   const {headers, rows} = bankParsedData;
   bankHeaders = headers; bankRawRows = rows;
-  const detected = detectColumns(headers);
 
-  const mapBox = document.getElementById('col-map-box');
+  // Check if CSV has no headers (first cell looks like a date)
+  const firstCell = (headers[0]||'').trim();
+  const hasNoHeaders = /^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/.test(firstCell) || /^\d{4}-\d{2}-\d{2}/.test(firstCell);
+
+  if (hasNoHeaders) {
+    // No headers — use known bank format: Col0=Date, Col1=TxnID, Col2=Description, Col3=Amount, Col4=Balance
+    addLog('Bank CSV: no headers detected — using fixed column positions (Date=A, Desc=C, Amount=D)', 'info');
+    buildBankPreviewFixed();
+    return;
+  }
+
+  // Has headers — use auto-detection with dropdown fallback
+  const detected = detectColumns(headers);
+  const mapBox  = document.getElementById('col-map-box');
   const mapGrid = document.getElementById('col-map-grid');
   mapBox.style.display = 'block';
   mapGrid.innerHTML = '';
 
-  [
-    {key:'date',  label:'Date Column',        idx:detected.date},
-    {key:'desc',  label:'Description Column',  idx:detected.desc},
-    {key:'amount',label:'Amount Column',        idx:detected.amount},
-  ].forEach(f => {
+  [{key:'date',label:'Date Column',idx:detected.date},{key:'desc',label:'Description Column',idx:detected.desc},{key:'amount',label:'Amount Column',idx:detected.amount}].forEach(f => {
     const div = document.createElement('div');
     div.className = 'col-map-item';
     div.innerHTML = `<div class="col-map-label">${f.label}</div>
@@ -928,6 +936,28 @@ function processBankCSV() {
     if (el) el.addEventListener('change', buildBankPreview);
   });
   addLog(`Bank CSV: auto-detected Date="${headers[detected.date]||'?'}", Desc="${headers[detected.desc]||'?'}", Amount="${headers[detected.amount]||'?'}"`, 'info');
+}
+
+function buildBankPreviewFixed() {
+  // Fixed column layout: 0=Date, 1=TxnID, 2=Description, 3=Amount, 4=Balance
+  const allRows = [...bankHeaders ? [bankHeaders] : [], ...bankRawRows];
+
+  const rows = allRows.map(r => {
+    const date   = (r[0]||'').trim();
+    const desc   = (r[2]||'').trim();
+    const rawAmt = (r[3]||'').trim();
+    const amount = parseFloat(String(rawAmt).replace(/[$,()]/g,'')) || 0;
+    const isDebit  = amount < 0;
+    const isDeposit = /deposit|credit/i.test(desc) || amount > 0;
+    const abs    = Math.abs(amount);
+    const cat    = guessCategory(desc);
+    // Negative = expense, positive = income
+    return [date, desc, isDebit ? abs : '', !isDebit ? abs : '', cat, 'Bank/Card Import'];
+  }).filter(r => r[0] && (r[2] || r[3]));
+
+  const expTotal = rows.reduce((s,r)=>s+(parseFloat(r[2])||0),0);
+  document.getElementById('sum-expenses').textContent = '$'+expTotal.toLocaleString('en-US',{maximumFractionDigits:0});
+  showPreview(rows,['Date','Description','Expense ($)','Income ($)','Category','Source'],`Bank / Card — ${rows.length} transactions`,'📥 Bank & Card Import');
 }
 
 function buildBankPreview() {
