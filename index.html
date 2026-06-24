@@ -781,7 +781,7 @@ function processSquareCSV() {
   document.getElementById('sum-square').textContent = '$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
   document.getElementById('sq-last').textContent = new Date().toLocaleString();
   document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
-  showPreview(processed,['Date','Transaction ID','Description','Gross ($)','Fees ($)','Net ($)','Method','Source','Category'],`Square POS — ${processed.length} transactions`,'📥 Square Import');
+  showPreview(processed,['Date','Transaction ID','Description','Gross ($)','Fees ($)','Net ($)','Method','Source','Category'],`Square POS — ${processed.length} transactions`,'Square Import');
   addLog(`Square CSV: ${processed.length} transactions, total $${total.toFixed(2)}`,'success');
 }
 
@@ -845,7 +845,7 @@ function processSquarespaceCSV() {
   document.getElementById('sum-ss').textContent = '$'+totalRev.toLocaleString('en-US',{maximumFractionDigits:0});
   document.getElementById('ssp-last').textContent = new Date().toLocaleString();
   document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString();
-  showPreview(processed,['Order Date','Order #','Customer Name','Items Ordered','Order Total ($)','Shipping ($)','Net Revenue ($)'],`Squarespace — ${processed.length} orders`,'📥 Squarespace Import');
+  showPreview(processed,['Order Date','Order #','Customer Name','Items Ordered','Order Total ($)','Shipping ($)','Net Revenue ($)'],`Squarespace — ${processed.length} orders`,'Squarespace Import');
   addLog(`Squarespace CSV: ${processed.length} orders, total $${totalRev.toFixed(2)}`,'success');
 }
 
@@ -972,7 +972,7 @@ function buildBankPreviewFixed() {
 
   const expTotal = rows.filter(r=>r[4]==='Debit').reduce((s,r)=>s+(Math.abs(parseFloat(r[3]))||0),0);
   document.getElementById('sum-expenses').textContent = '$'+expTotal.toLocaleString('en-US',{maximumFractionDigits:0});
-  showPreview(rows,['Date','Description (from bank)','Category','Amount ($)','Debit / Credit','Running Balance ($)','Notes'],`Bank / Card — ${rows.length} transactions`,'Bank & Card Import');
+  showPreview(rows,['Date','Description (from bank)','Category','Amount ($)','Debit / Credit','Running Balance ($)','Notes'],`Bank / Card — ${rows.length} transactions`,'Bank Import');
 }
 
 function buildBankPreview() {
@@ -994,7 +994,7 @@ function buildBankPreview() {
   const expTotal = rows.reduce((s,r)=>s+(parseFloat(r[2])||0),0);
   document.getElementById('sum-expenses').textContent = '$'+expTotal.toLocaleString('en-US',{maximumFractionDigits:0});
 
-  showPreview(rows,['Date','Description','Expense ($)','Income ($)','Category','Source'],`Bank / Card — ${rows.length} transactions`,'Bank & Card Import');
+  showPreview(rows,['Date','Description','Expense ($)','Income ($)','Category','Source'],`Bank / Card — ${rows.length} transactions`,'Bank Import');
 }
 
 function guessCategory(desc) {
@@ -1061,7 +1061,7 @@ function addCharityEntry() {
   showPreview([row],
     ['Date','Organization','Type','Description','Cash ($)','In-Kind Cost ($)','Retail Value ($)','Tax Treatment','Notes'],
     `Charitable Giving — ${org}`,
-    '🎁 Charitable Giving'
+    'Charitable Giving'
   );
 
   ['ch-org','ch-desc','ch-amount','ch-cost','ch-retail'].forEach(id => {
@@ -1082,7 +1082,7 @@ function addManualEntry() {
   const row = [date, type==='cash-sale'?'Cash Sale':type==='check'?'Check':'Expense', desc,
     type==='cash-sale'?'Cash Sales':type==='check'?'Invoices':'Miscellaneous',
     isExp?'':amount, isExp?amount:'', 'Manual Entry'];
-  showPreview([row],['Date','Type','Description','Category','Income ($)','Expense ($)','Source'],`Manual Entry — ${desc}`,'✏️ Cash & Manual Entry');
+  showPreview([row],['Date','Type','Description','Category','Income ($)','Expense ($)','Source'],`Manual Entry — ${desc}`,'Cash Entry');
   document.getElementById('manual-amount').value='';
   document.getElementById('manual-desc').value='';
   addLog(`Manual entry staged: "${desc}" — $${amount.toFixed(2)}`,'info');
